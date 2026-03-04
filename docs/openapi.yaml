@@ -1,0 +1,89 @@
+openapi: 3.0.3
+info:
+  title: KPI Telegram Bot Backend API
+  version: 1.0.0
+  description: |
+    REST API этого сервиса минимален.
+    Основная бизнес-логика работает через Telegram Bot API.
+servers:
+  - url: http://localhost:3000
+paths:
+  /:
+    get:
+      summary: Service info
+      tags: [System]
+      responses:
+        '200':
+          description: Service metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: kpi-telegram-bot-backend
+                  version:
+                    type: string
+                    example: 1.0.0
+  /health:
+    get:
+      summary: Liveness check
+      tags: [Health]
+      responses:
+        '200':
+          description: API process is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+  /health/ready:
+    get:
+      summary: Readiness check
+      tags: [Health]
+      responses:
+        '200':
+          description: API and DB are ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: up
+        '503':
+          description: Dependency is unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  timestamp:
+                    type: string
+                    format: date-time
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: down

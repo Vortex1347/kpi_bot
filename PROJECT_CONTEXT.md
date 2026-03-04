@@ -11,7 +11,7 @@ Telegram bot for KPI self-evaluation of employees with:
 
 ## Architecture
 
-Backend is implemented in `carcas/backend` using NestJS modular architecture:
+Backend is implemented in `backend` using NestJS modular architecture:
 
 - `bot` — Telegram command/callback handlers
 - `employee` — registration and employee profiles
@@ -109,7 +109,7 @@ Pending:
 
 ## Runbook (Local)
 
-From `carcas/backend`:
+From `backend`:
 
 1. `npm install`
 2. `npm run db:up`
@@ -129,4 +129,4 @@ From `carcas/backend`:
 
 DB runtime note:
 
-- PostgreSQL is managed by `carcas/backend/docker-compose.yml` with persistent volume `kpi_bot_postgres_data`.
+- PostgreSQL is managed by `backend/docker-compose.yml` with persistent volume `kpi_bot_postgres_data`.

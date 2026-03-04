@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kpi-bot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kpi_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_strong_password}
+      POSTGRES_DB: ${POSTGRES_DB:-kpi_bot}
+    ports:
+      - "${POSTGRES_PORT:-666}:5432"
+    volumes:
+      - kpi_bot_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kpi_user} -d ${POSTGRES_DB:-kpi_bot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  kpi_bot_postgres_data:
