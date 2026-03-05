@@ -13,12 +13,18 @@ Telegram bot for KPI self-evaluation of employees with:
 
 Backend is implemented in `backend` using NestJS modular architecture:
 
+- `auth` — CRM login/refresh/logout with Bearer access token
+- `users` — `/users/me` and CRM users CRUD (SUPERVISOR role)
 - `bot` — Telegram command/callback handlers
 - `employee` — registration and employee profiles
 - `survey` — KPI campaign lifecycle
 - `evaluation` — questions and answers
 - `kpi` — KPI calculation service
 - `report` — Excel generation service
+- `results` — API for web dashboard table and KPI operations
+  - includes monthly statistics endpoint and trend calculation
+  - includes dashboard action endpoints for start/close/export buttons
+  - all results endpoints require Bearer token; actions require SUPERVISOR
 - `prisma` — database access
 
 ## Tech Stack
@@ -54,14 +60,16 @@ Enums:
 
 Employee:
 
-- `/start` — register (`ФИО | Отдел`)
-- `/fill_kpi` — start/continue active survey
+- `/start` — open menu and complete step-by-step registration
+- `Заполнить KPI` button — start/continue active survey
 
 Lead only (`LEAD_TELEGRAM_ID`):
 
-- `/start_kpi`
-- `/close_kpi`
-- `/generate_reports`
+- Prefer CRM actions: Start KPI, Close KPI, Export Excel
+- Telegram commands remain as fallback:
+  - `/start_kpi`
+  - `/close_kpi`
+  - `/generate_reports`
 
 ## KPI Logic
 
@@ -86,8 +94,9 @@ Bonus calculation: disabled for now (`0` in reports).
 - Storage: PostgreSQL + Prisma
 - Report format: Excel `.xlsx`
 - Reminder feature: disabled
-- Survey closing: manual only via `/close_kpi`
+- Survey closing: manual через CRM кнопку `Закрыть KPI` (`/close_kpi` остается fallback)
 - Lead access control: single `LEAD_TELEGRAM_ID` from `.env`
+- CRM access control: login required for `/results`; start/close/export only for SUPERVISOR
 
 ## Current Progress
 
@@ -98,6 +107,10 @@ Completed:
 - Telegram bot command flow implemented
 - KPI calculation service implemented
 - Excel report generation implemented
+- Web results endpoint (`GET /results`) implemented
+- Monthly statistics endpoint (`GET /results/statistics`) implemented
+- Dashboard action endpoints (`POST /results/actions/start-campaign`, `POST /results/actions/close-campaign`, `POST /results/actions/export-excel`) implemented
+- CRM auth/users endpoints (`/auth/*`, `/users/*`) implemented
 - Unit tests updated and passing
 - Project docs synced
 
@@ -117,6 +130,9 @@ From `backend`:
 4. Fill required env:
    - `TELEGRAM_BOT_TOKEN`
    - `LEAD_TELEGRAM_ID`
+   - `CRM_SUPERVISOR_EMAIL`
+   - `CRM_SUPERVISOR_USERNAME`
+   - `CRM_SUPERVISOR_PASSWORD`
    - `POSTGRES_USER`
    - `POSTGRES_PASSWORD`
    - `POSTGRES_DB`

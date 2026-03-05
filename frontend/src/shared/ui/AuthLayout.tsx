@@ -11,7 +11,7 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
       <div className={ksClasses.authContainer}>
         <main className="flex-1 flex items-center">{children}</main>
         <footer className="mt-8 border-t border-border pt-4 text-xs text-text-muted">
-          Keysoft Junior · auth
+          KPI CRM · auth
         </footer>
       </div>
     </div>

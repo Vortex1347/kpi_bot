@@ -1,25 +1,25 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { RequireAuth } from "../router/RequireAuth";
-import { getRoutesForAppKind } from "../router/routes";
+import { getAppRoutes } from "../router/routes";
 import { useAuthStore } from "../modules/auth/authStore";
 import { Layout } from "../shared/ui/Layout";
-import { runtimeConfig } from "./runtimeConfig";
 
 export const App = () => {
+  const location = useLocation();
   const init = useAuthStore((s) => s.init);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const appRoutes = getRoutesForAppKind(runtimeConfig.appKind);
-  const fallbackPath = runtimeConfig.appKind === "crm" ? "/crm" : "/";
-  const postAuthPath =
-    runtimeConfig.appKind === "crm" ? "/crm" : user?.role === "SUPERVISOR" ? "/crm" : "/";
+  const appRoutes = getAppRoutes();
+  const fallbackPath = "/results";
+  const postAuthPath = "/results";
 
   useEffect(() => {
-    if (runtimeConfig.appKind === "landing") return;
+    const isAuthPath = location.pathname === "/login" || location.pathname === "/register";
+    if (isAuthPath) return;
     init().catch(() => undefined);
-  }, [init]);
+  }, [init, location.pathname]);
 
   return (
     <Routes>

@@ -2,6 +2,32 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { Campaign, CampaignStatus } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 
+const MONTH_KEY_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+function toMonthKey(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function getPreviousMonthKey(now: Date): string {
+  const previousMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  return toMonthKey(previousMonthDate);
+}
+
+function normalizeCampaignMonthKey(rawMonthKey: string | undefined, now: Date): string {
+  const normalized = rawMonthKey?.trim();
+  if (!normalized) {
+    return getPreviousMonthKey(now);
+  }
+
+  if (!MONTH_KEY_REGEX.test(normalized)) {
+    throw new BadRequestException("Параметр monthKey должен быть в формате YYYY-MM.");
+  }
+
+  return normalized;
+}
+
 @Injectable()
 export class SurveyService {
   constructor(private readonly prisma: PrismaService) {}
@@ -13,19 +39,22 @@ export class SurveyService {
     });
   }
 
-  async startCampaign(createdBy: string): Promise<Campaign> {
+  async startCampaign(createdBy: string, monthKey?: string): Promise<Campaign> {
     const activeCampaign = await this.getActiveCampaign();
     if (activeCampaign) {
       throw new BadRequestException("Уже есть активная KPI-кампания. Сначала закройте её командой /close_kpi.");
     }
 
-    const timestamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+    const now = new Date();
+    const assessmentMonth = normalizeCampaignMonthKey(monthKey, now);
+    const timeTag = now.toISOString().slice(11, 16);
 
     return this.prisma.campaign.create({
       data: {
-        title: `KPI Campaign ${timestamp}`,
+        title: `KPI Campaign ${assessmentMonth} ${timeTag}`,
+        assessmentMonth,
         status: CampaignStatus.ACTIVE,
-        startedAt: new Date(),
+        startedAt: now,
         createdBy
       }
     });

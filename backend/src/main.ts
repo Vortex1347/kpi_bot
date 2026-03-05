@@ -15,6 +15,10 @@ async function bootstrap() {
   const server = httpAdapter.getInstance();
   server.set("trust proxy", 1);
   server.disable("x-powered-by");
+  app.enableCors({
+    origin: true,
+    credentials: true
+  });
 
   app.useGlobalFilters(new HttpExceptionFilter());
   await app.get(PrismaService).enableShutdownHooks(app);

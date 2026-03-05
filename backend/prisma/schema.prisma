@@ -34,6 +34,7 @@ model Employee {
 model Campaign {
   id           String                @id @default(uuid())
   title        String
+  assessmentMonth String             @db.VarChar(7)
   status       CampaignStatus        @default(CREATED)
   startedAt    DateTime?
   closedAt     DateTime?
@@ -42,6 +43,8 @@ model Campaign {
   updatedAt    DateTime              @updatedAt
   responses    EvaluationResponse[]
   participants CampaignParticipant[]
+
+  @@index([assessmentMonth])
 }
 
 model CampaignParticipant {

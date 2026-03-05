@@ -3,8 +3,8 @@ info:
   title: KPI Telegram Bot Backend API
   version: 1.0.0
   description: |
-    REST API этого сервиса минимален.
-    Основная бизнес-логика работает через Telegram Bot API.
+    REST API включает CRM-auth и KPI dashboard.
+    Основная бизнес-логика сбора ответов сотрудников работает через Telegram Bot API.
 servers:
   - url: http://localhost:3000
 paths:
@@ -87,3 +87,715 @@ paths:
                       database:
                         type: string
                         example: down
+  /auth/login:
+    post:
+      summary: CRM login
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Access token returned, refresh cookie set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          description: Invalid payload
+        '401':
+          description: Invalid credentials
+  /auth/register:
+    post:
+      summary: CRM register (local/dev)
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Access token returned, refresh cookie set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          description: Validation error
+  /auth/refresh:
+    post:
+      summary: Refresh access token via httpOnly cookie
+      tags: [Auth]
+      responses:
+        '200':
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          description: Refresh cookie is missing
+        '401':
+          description: Refresh token invalid or expired
+  /auth/logout:
+    post:
+      summary: Logout and clear refresh cookie
+      tags: [Auth]
+      responses:
+        '200':
+          description: Logout response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    enum: [true]
+                required: [ok]
+  /users/me:
+    get:
+      summary: Get current CRM user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmUserSummary'
+        '401':
+          description: Missing/invalid access token
+  /users:
+    get:
+      summary: List CRM users (SUPERVISOR only)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CrmUserSummary'
+        '401':
+          description: Missing/invalid access token
+        '403':
+          description: SUPERVISOR role required
+    post:
+      summary: Create CRM user (SUPERVISOR only)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmUserSummary'
+        '400':
+          description: Validation error
+        '401':
+          description: Missing/invalid access token
+        '403':
+          description: SUPERVISOR role required
+  /users/{userId}:
+    patch:
+      summary: Update CRM user (SUPERVISOR only)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmUserSummary'
+        '400':
+          description: Validation error
+        '401':
+          description: Missing/invalid access token
+        '403':
+          description: SUPERVISOR role required
+    delete:
+      summary: Delete CRM user (SUPERVISOR only)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    enum: [true]
+                required: [ok]
+        '400':
+          description: Cannot delete current user
+        '401':
+          description: Missing/invalid access token
+        '403':
+          description: SUPERVISOR role required
+  /results:
+    get:
+      summary: KPI results table for web dashboard
+      description: |
+        Возвращает KPI-представление ответов сотрудников по KPI-кампании.
+        Если `campaignId` не передан, используется последняя созданная кампания.
+      tags: [Results]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: campaignId
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Явный ID кампании для просмотра
+      responses:
+        '200':
+          description: KPI results payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResultsView'
+        '404':
+          description: Campaign not found by provided campaignId
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: KPI-кампания не найдена.
+        '401':
+          description: Missing/invalid access token
+  /results/statistics:
+    get:
+      summary: Monthly KPI statistics
+      description: |
+        Возвращает помесячную KPI-статистику и динамику сотрудников.
+        Для каждого месяца выбирается последняя кампания этого месяца.
+      tags: [Results]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: months
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 36
+            default: 12
+          description: Количество последних месяцев для статистики
+      responses:
+        '200':
+          description: Monthly KPI statistics payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyKpiStatisticsView'
+        '400':
+          description: Invalid months parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Параметр months должен быть целым числом от 1 до 36.
+        '401':
+          description: Missing/invalid access token
+  /results/actions/start-campaign:
+    post:
+      summary: Start KPI campaign from web dashboard
+      tags: [Results]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                monthKey:
+                  type: string
+                  pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+                  example: '2026-02'
+                  description: KPI month in YYYY-MM format; if omitted, previous month is used.
+      responses:
+        '200':
+          description: Campaign started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartCampaignActionResult'
+        '401':
+          description: Missing/invalid access token
+        '403':
+          description: SUPERVISOR role required
+  /results/actions/close-campaign:
+    post:
+      summary: Close active KPI campaign from web dashboard
+      tags: [Results]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Campaign closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloseCampaignActionResult'
+        '404':
+          description: No active campaign
+        '401':
+          description: Missing/invalid access token
+        '403':
+          description: SUPERVISOR role required
+  /results/actions/export-excel:
+    post:
+      summary: Export campaign results to Excel from web dashboard
+      tags: [Results]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                campaignId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Excel reports generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportExcelActionResult'
+        '400':
+          description: Invalid payload
+        '404':
+          description: Campaign not found
+        '401':
+          description: Missing/invalid access token
+        '403':
+          description: SUPERVISOR role required
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-token
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          example: dev_supervisor
+        password:
+          type: string
+          example: dev_password_change_me
+      required: [identifier, password]
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: new.user@example.com
+        password:
+          type: string
+          minLength: 8
+          example: password123
+        username:
+          type: string
+          example: new_user
+        name:
+          type: string
+          example: New User
+      required: [email, password]
+    AuthTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+      required: [accessToken]
+    CrmUserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [SUPERVISOR, USER]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, username, email, name, role, isActive, createdAt]
+    CreateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+        role:
+          type: string
+          enum: [SUPERVISOR, USER]
+        isActive:
+          type: boolean
+      required: [email, password]
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+        role:
+          type: string
+          enum: [SUPERVISOR, USER]
+        isActive:
+          type: boolean
+    CampaignResultsView:
+      type: object
+      properties:
+        campaign:
+          $ref: '#/components/schemas/ResultsCampaign'
+          nullable: true
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResultsQuestion'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResultsRow'
+      required: [campaign, questions, rows]
+    ResultsCampaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        assessmentMonth:
+          type: string
+          pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+          example: '2026-02'
+        status:
+          type: string
+          enum: [CREATED, ACTIVE, CLOSED, REPORT_GENERATED]
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        closedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, title, assessmentMonth, status, startedAt, closedAt, createdAt]
+    ResultsQuestion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        label:
+          type: string
+          example: Q1
+        text:
+          type: string
+        section:
+          type: string
+        weightPercent:
+          type: integer
+        sortOrder:
+          type: integer
+      required: [id, code, label, text, section, weightPercent, sortOrder]
+    ResultsAnswer:
+      type: object
+      properties:
+        questionId:
+          type: string
+          format: uuid
+        questionCode:
+          type: string
+        questionLabel:
+          type: string
+          example: Q1
+        score:
+          type: integer
+          nullable: true
+          enum: [100, 90, 80, 70, 0]
+          description: '0 means "60 or less" in UI/Telegram labels.'
+      required: [questionId, questionCode, questionLabel, score]
+    ResultsRow:
+      type: object
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employeeName:
+          type: string
+        department:
+          type: string
+        answeredCount:
+          type: integer
+        isCompleted:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        section1Percent:
+          type: number
+          format: double
+        section2Percent:
+          type: number
+          format: double
+        totalPercent:
+          type: number
+          format: double
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResultsAnswer'
+      required:
+        - employeeId
+        - employeeName
+        - department
+        - answeredCount
+        - isCompleted
+        - completedAt
+        - section1Percent
+        - section2Percent
+        - totalPercent
+        - answers
+    MonthlyKpiStatisticsView:
+      type: object
+      properties:
+        months:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyKpiCampaignStat'
+        employees:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyKpiEmployeeStat'
+      required: [months, employees]
+    MonthlyKpiCampaignStat:
+      type: object
+      properties:
+        monthKey:
+          type: string
+          example: '2026-03'
+        monthLabel:
+          type: string
+          example: '2026-03'
+        campaignId:
+          type: string
+          format: uuid
+        campaignTitle:
+          type: string
+        campaignStatus:
+          type: string
+          enum: [CREATED, ACTIVE, CLOSED, REPORT_GENERATED]
+        participants:
+          type: integer
+        completedParticipants:
+          type: integer
+        averageKpi:
+          type: number
+          format: double
+      required:
+        - monthKey
+        - monthLabel
+        - campaignId
+        - campaignTitle
+        - campaignStatus
+        - participants
+        - completedParticipants
+        - averageKpi
+    MonthlyKpiEmployeeValue:
+      type: object
+      properties:
+        monthKey:
+          type: string
+          example: '2026-03'
+        campaignId:
+          type: string
+          format: uuid
+        kpi:
+          type: number
+          format: double
+          nullable: true
+      required: [monthKey, campaignId, kpi]
+    MonthlyKpiEmployeeStat:
+      type: object
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employeeName:
+          type: string
+        department:
+          type: string
+        averageKpi:
+          type: number
+          format: double
+          nullable: true
+        trendDelta:
+          type: number
+          format: double
+          nullable: true
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyKpiEmployeeValue'
+      required:
+        - employeeId
+        - employeeName
+        - department
+        - averageKpi
+        - trendDelta
+        - values
+    StartCampaignActionResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        campaign:
+          $ref: '#/components/schemas/ResultsCampaign'
+        participants:
+          type: integer
+      required: [ok, message, campaign, participants]
+    CloseCampaignActionResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        campaign:
+          $ref: '#/components/schemas/ResultsCampaign'
+      required: [ok, message, campaign]
+    ExportExcelEmployeeFile:
+      type: object
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        employeeName:
+          type: string
+        filePath:
+          type: string
+      required: [employeeId, employeeName, filePath]
+    ExportExcelActionResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        campaign:
+          $ref: '#/components/schemas/ResultsCampaign'
+        summaryFilePath:
+          type: string
+        employeeFiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportExcelEmployeeFile'
+      required:
+        - ok
+        - message
+        - campaign
+        - summaryFilePath
+        - employeeFiles

@@ -17,6 +17,17 @@ function hasMessage(value: unknown): value is { message: unknown } {
   return typeof value === "object" && value !== null && "message" in value;
 }
 
+function resolveApiErrorMessage(body: unknown): string {
+  if (!hasMessage(body)) return "API error";
+
+  const direct = body.message;
+  if (typeof direct === "string") return direct;
+  if (Array.isArray(direct)) return direct.map((item) => String(item)).join(", ");
+  if (hasMessage(direct) && typeof direct.message === "string") return direct.message;
+
+  return "API error";
+}
+
 export async function fetchJson<TResponse>(
   path: string,
   options?: RequestInit & { readonly json?: JsonRecord }
@@ -40,7 +51,7 @@ export async function fetchJson<TResponse>(
   const body = isJson ? await response.json().catch(() => undefined) : await response.text().catch(() => undefined);
 
   if (!response.ok) {
-    const message = hasMessage(body) ? String(body.message) : "API error";
+    const message = resolveApiErrorMessage(body);
     throw new ApiError(message, response.status, body);
   }
 

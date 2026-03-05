@@ -5,10 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "dev:landing": "vite --mode landing --port 5173",
     "dev:crm": "vite --mode crm --port 5174",
     "build": "vite build",
-    "build:landing": "vite build --mode landing",
     "build:crm": "vite build --mode crm",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

@@ -1,28 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { getRoutesForAppKind } from "./routes";
+import { getAppRoutes } from "./routes";
 
-function pathsFor(kind: "full" | "landing" | "crm"): string[] {
-  return getRoutesForAppKind(kind).map((route) => route.path);
+function paths(): string[] {
+  return getAppRoutes().map((route) => route.path);
 }
 
-describe("getRoutesForAppKind", () => {
-  it("returns full route-set for full app", () => {
-    expect(pathsFor("full")).toEqual(["/", "/login", "/register", "/app", "/crm"]);
-  });
-
-  it("returns only public routes for landing app", () => {
-    expect(pathsFor("landing")).toEqual(["/"]);
-  });
-
-  it("returns only crm routes for crm app", () => {
-    expect(pathsFor("crm")).toEqual(["/login", "/register", "/app", "/crm"]);
+describe("getAppRoutes", () => {
+  it("returns crm route-set", () => {
+    expect(paths()).toEqual(["/", "/login", "/register", "/app", "/crm", "/results"]);
   });
 
   it("route definitions provide renderable element factories", () => {
-    const routes = getRoutesForAppKind("full");
+    const routes = getAppRoutes();
     for (const route of routes) {
       const element = route.element();
       expect(element).toBeTruthy();
     }
+  });
+
+  it("protects results route with auth", () => {
+    const resultsRoute = getAppRoutes().find((route) => route.path === "/results");
+    expect(resultsRoute?.meta?.auth).toBe(true);
   });
 });

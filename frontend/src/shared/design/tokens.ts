@@ -42,7 +42,6 @@ export const ksTokens = {
     level3: "0 16px 40px rgba(0, 0, 0, 0.32)"
   },
   layout: {
-    landingMaxWidth: "1200px",
     dashboardMaxWidth: "1440px",
     formMaxWidth: "720px"
   }

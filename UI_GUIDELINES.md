@@ -1,4 +1,4 @@
-# UI Guidelines (Keysoft Junior)
+# UI Guidelines (KPI Bot)
 
 ## Scope
 - This guide is for `frontend` implementation of the design system in `DESIGN_SYSTEM.md`.
