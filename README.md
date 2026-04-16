@@ -45,7 +45,14 @@ npm install
 npm run db:up
 ```
 
-Используется файл `backend/docker-compose.yml` и постоянный volume `kpi_bot_postgres_data`.
+Используется файл `backend/docker-compose.yml`, отдельный compose-проект `kpi-bot-backend` и постоянный volume `kpi_bot_postgres_data`.
+
+Если на `POSTGRES_PORT` уже висит Postgres из другого репозитория, сначала освободите порт или поменяйте `POSTGRES_PORT` в `backend/.env`. Если текущий volume этого проекта был создан со старыми `POSTGRES_*`, пересоздайте только его:
+
+```bash
+docker compose -p kpi-bot-backend down -v
+npm run db:up
+```
 
 3. Создайте `.env` из примера и заполните:
 
@@ -81,6 +88,8 @@ npm run db:seed
 ```bash
 npm run start:dev
 ```
+
+Если видите ошибку Prisma вида `role "kpi_user" does not exist` или `provided database credentials ... are not valid`, это почти всегда означает, что backend подключился не к той локальной базе или к старому volume с другой инициализацией.
 
 6. Установите frontend-зависимости:
 

@@ -24,12 +24,19 @@ npm install
 npm run db:up
 ```
 
-Команда использует `backend/docker-compose.yml` (PostgreSQL + persistent volume).
+Команда использует `backend/docker-compose.yml` с отдельным compose-проектом `kpi-bot-backend` (PostgreSQL + persistent volume).
 
 Проверка логов при необходимости:
 
 ```bash
 npm run db:logs
+```
+
+Если порт `POSTGRES_PORT` уже занят Postgres-контейнером из другого репозитория, остановите тот контейнер или смените порт в `backend/.env`. Если именно этот проект уже успел создать volume со старыми `POSTGRES_*`, пересоздайте его:
+
+```bash
+docker compose -p kpi-bot-backend down -v
+npm run db:up
 ```
 
 ## 4. Environment
@@ -66,6 +73,8 @@ npm run db:seed
 ```bash
 npm run start:dev
 ```
+
+Ошибка Prisma `role "kpi_user" does not exist` или `provided database credentials ... are not valid` означает, что backend подключился не к той локальной базе либо к базе, инициализированной с другими `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`.
 
 ## 7. Frontend dashboard
 
